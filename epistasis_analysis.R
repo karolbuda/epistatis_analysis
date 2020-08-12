@@ -1,7 +1,7 @@
 ### Inputs ###
 
-directory = "C:/Users/Karol Buda/Desktop/Program/R/Epistasis Model/zhang_et_al"
-file = "zhang_et_al.csv"
+directory = ""
+file = ""
 error = F
 
 ### Library ###
