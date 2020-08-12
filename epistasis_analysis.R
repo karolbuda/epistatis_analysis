@@ -100,7 +100,7 @@ for(k in 2:(dim(codes)[2]-1)){
   print(paste0("Analyzing Next Model Order: ", k))
 }
 
-## Provide feedback if there are singularities because of missing data
+
 
 ## Prepare output
 
@@ -133,9 +133,22 @@ colnames(pred_df) = c("genotype", "predicted effect")
 
 ## Writing csvs
 
-write.csv(pos_out[,c(2,1)],"pos_out.csv", row.names = FALSE)
-write.csv(order,"model_order.csv", row.names = FALSE)
-write.csv(pred_df, "gen_out.csv", row.names = FALSE)
+current_model$coef[2] = 1
+current_model$coef[6] = 1
+
+#write.csv(pos_out[,c(2,1)],"pos_out.csv", row.names = FALSE)
+#write.csv(order,"model_order.csv", row.names = FALSE)
+#write.csv(pred_df, "gen_out.csv", row.names = FALSE)
+
+## Provide feedback in log.txt form if there are singularities because of missing data AND the p-value of next model if exists
+
+if(length(which(is.na(current_model$coef))) > 0) {
+  write(c("-------------", paste("Variable", names(current_model$coef[which(is.na(current_model$coef))]), "= NA")), "log.txt")
+}
+if(!is.na(anova(current_model, next_model)[6][2,])) {
+  write(c("-------------", paste0("Highest Model Order: ", k-1), paste0("Next model p-value: ", anova(current_model, next_model)[6][2,])), "log.txt", append = T)
+}
+
 
 ## Plotting
 
