@@ -159,3 +159,71 @@ ggplot(pos_out[-1,], aes(x = indices, y = effect, fill = order)) +
   facet_wrap(~ order, scales = "free_x") + 
   labs(x = "Mutation(s)", y = "Effect on -deldelG") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+
+## Qualitative Violin plots for examining clustering/distributions
+
+codes_effects = c()
+codes_position = c()
+
+for(i in 1:(length(names(codes)) - 1)) {
+  codes_effects = c(codes_effects, as.numeric(subset(codes, codes[,i] == 1)$effect))
+  codes_position = c(codes_position, rep(names(codes)[i], length(as.numeric(subset(codes, codes[,i] == 1)$effect))))
+}
+
+new_codes = data.frame(positions = codes_position, effects = codes_effects) 
+
+png("fold_effect.png", width = 1200, height = 752)
+
+ggplot(new_codes, aes(x = positions, y = effects, color = positions)) +
+  geom_violin(color = "darkgray", trim = FALSE) +
+  geom_jitter(position = position_jitter(0.2)) +
+  labs(x = "Mutant Positions", y = "Fold Effect Change on Activity") +
+  theme_classic()
+
+dev.off()
+
+##
+
+codes$effect = as.numeric(codes$effect)
+
+newer_codes = codes %>%
+  group_by_at(names(codes)[-length(names(codes))]) %>%
+  summarise(avg = mean(effect))
+
+replace_occurence = function(x, replaced, value){
+  x[x == replaced] = value
+  return(x)
+}
+
+codes_iden = c()
+
+for(i in 1:dim(newer_codes)[1]) {
+  codes_iden = c(codes_iden, paste(as.character(replace_occurence(newer_codes[i, 1:(length(names(newer_codes)) - 1)], -1, 0)), collapse = ""))
+}
+
+newer_codes$identity = codes_iden
+
+codes_effects = c()
+codes_identity = c()
+codes_position = c()
+
+for(i in 1:(length(names(newer_codes)) - 1)) {
+  codes_effects = c(codes_effects, as.numeric(subset(newer_codes, newer_codes[,i] == 1)$avg))
+  codes_identity = c(codes_identity, as.character(subset(newer_codes, newer_codes[,i] == 1)$identity))
+  codes_position = c(codes_position, rep(names(newer_codes)[i], length(as.numeric(subset(newer_codes, newer_codes[,i] == 1)$avg))))
+}
+
+newer_codes = data.frame(positions = codes_position, effects = codes_effects, identity = codes_identity) 
+
+png("mean_fold_effect.png", width = 1200, height = 752)
+
+ggplot(newer_codes, aes(x = positions, y = effects, color = positions)) +
+  geom_violin(color = "darkgray", trim = FALSE) +
+  geom_hline(yintercept=0, linetype="dashed", color = "black") +
+  geom_jitter(position = position_jitter(0)) +
+  geom_text_repel(aes(label = identity), force = 0.5, nudge_x = 0.5, direction = "y", box.padding = 0, segment.size = 0.2, size = 3) +
+  labs(x = "Mutant Positions", y = "Mean Fold Effect Change on Activity") +
+  theme_classic()
+
+dev.off()
+
