@@ -153,12 +153,16 @@ pos_out$order = c(NA, paste0("Order ", str_count(pos_out$indices[-1], "[|]") + 1
 
 pos_out$indices = factor(pos_out$indices, levels = pos_out$indices)
 
+png("fold_effect.png", width = 1200, height = 752)
+
 ggplot(pos_out[-1,], aes(x = indices, y = effect, fill = order)) +
   geom_bar(stat="identity") +
   geom_text(aes(label=formatC(effect, digits=2), y = effect + 0.1*sign(effect)), size = 2.5) +
   facet_wrap(~ order, scales = "free_x") + 
   labs(x = "Mutation(s)", y = "Effect on -deldelG") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+
+dev.off()
 
 ## Qualitative Violin plots for examining clustering/distributions
 
