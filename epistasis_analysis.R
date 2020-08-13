@@ -133,12 +133,9 @@ colnames(pred_df) = c("genotype", "predicted effect")
 
 ## Writing csvs
 
-current_model$coef[2] = 1
-current_model$coef[6] = 1
-
-#write.csv(pos_out[,c(2,1)],"pos_out.csv", row.names = FALSE)
-#write.csv(order,"model_order.csv", row.names = FALSE)
-#write.csv(pred_df, "gen_out.csv", row.names = FALSE)
+write.csv(pos_out[,c(2,1)],"pos_out.csv", row.names = FALSE)
+write.csv(order,"model_order.csv", row.names = FALSE)
+write.csv(pred_df, "gen_out.csv", row.names = FALSE)
 
 ## Provide feedback in log.txt form if there are singularities because of missing data AND the p-value of next model if exists
 
