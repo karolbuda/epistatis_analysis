@@ -8,6 +8,7 @@ error = F
 
 library(gtools)
 library(ggplot2)
+library(ggrepel)
 library(stringr)
 
 ### Script ###
@@ -153,7 +154,7 @@ pos_out$order = c(NA, paste0("Order ", str_count(pos_out$indices[-1], "[|]") + 1
 
 pos_out$indices = factor(pos_out$indices, levels = pos_out$indices)
 
-png("fold_effect.png", width = 1200, height = 752)
+png("epistatic_effect.png", width = 1200, height = 752)
 
 ggplot(pos_out[-1,], aes(x = indices, y = effect, fill = order)) +
   geom_bar(stat="identity") +
@@ -175,6 +176,8 @@ for(i in 1:(length(names(codes)) - 1)) {
 }
 
 new_codes = data.frame(positions = codes_position, effects = codes_effects) 
+
+new_codes$positions = factor(new_codes$positions, levels = unique(new_codes$positions))
 
 png("fold_effect.png", width = 1200, height = 752)
 
@@ -219,15 +222,16 @@ for(i in 1:(length(names(newer_codes)) - 1)) {
 
 newer_codes = data.frame(positions = codes_position, effects = codes_effects, identity = codes_identity) 
 
+newer_codes$positions = factor(newer_codes$positions, levels = unique(newer_codes$positions))
+
 png("mean_fold_effect.png", width = 1200, height = 752)
 
 ggplot(newer_codes, aes(x = positions, y = effects, color = positions)) +
   geom_violin(color = "darkgray", trim = FALSE) +
   geom_hline(yintercept=0, linetype="dashed", color = "black") +
   geom_jitter(position = position_jitter(0)) +
-  geom_text_repel(aes(label = identity), force = 0.5, nudge_x = 0.5, direction = "y", box.padding = 0, segment.size = 0.2, size = 3) +
+  geom_text_repel(aes(label = identity), force = 0.5, nudge_x = 0.3, direction = "y", box.padding = 0, segment.size = 0.2, size = 3.5) +
   labs(x = "Mutant Positions", y = "Mean Fold Effect Change on Activity") +
   theme_classic()
 
 dev.off()
-
