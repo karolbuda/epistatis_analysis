@@ -1,8 +1,9 @@
 ### Inputs ###
 
-directory = ""
-file = ""
+directory = "C:/Users/Karol Buda/Desktop/Program/R/Epistasis Model/zhang_et_al/p_removed"
+file = "zhang_et_al.csv"
 error = F
+p_on = F
 
 ### Library ###
 
@@ -88,21 +89,34 @@ for(k in 2:(dim(codes)[2]-1)){
   ## Needed to paste with **k because lm doesn't like the power term introduced otherwise
   next_model = lm(paste("effect ~ (",vars ,")**", k, sep=""), codes)
   
-  if(!is.na(anova(current_model, next_model)[6][2,]) & anova(current_model, next_model)[6][2,] < 0.05) {
-    current_model = next_model
-    # Add order into order list
-    order = rbind(order, c(paste("order", k, sep=""), summary(current_model)$r.squared, 
-                       summary(current_model)$adj.r.squared, 
-                       summary(current_model)$r.squared - as.numeric(order[k-1,2])))
-  } else{
-    print(paste0("Highest Model Order: ", k-1))
-    print(paste0("Next model p-value: ", anova(current_model, next_model)[6][2,]))
-    break
+  if(p_on) {
+    if(!is.na(anova(current_model, next_model)[6][2,]) & anova(current_model, next_model)[6][2,] < 0.05) {
+      current_model = next_model
+      # Add order into order list
+      order = rbind(order, c(paste("order", k, sep=""), summary(current_model)$r.squared, 
+                         summary(current_model)$adj.r.squared, 
+                         summary(current_model)$r.squared - as.numeric(order[k-1,2])))
+    } else{
+      print(paste0("Highest Model Order: ", k-1))
+      print(paste0("Next model p-value: ", anova(current_model, next_model)[6][2,]))
+      break
+    }
+    print(paste0("Analyzing Next Model Order: ", k))
+  } else {
+    if(!is.na(anova(current_model, next_model)[6][2,])) {
+      current_model = next_model
+      # Add order into order list
+      order = rbind(order, c(paste("order", k, sep=""), summary(current_model)$r.squared, 
+                             summary(current_model)$adj.r.squared, 
+                             summary(current_model)$r.squared - as.numeric(order[k-1,2])))
+    } else{
+      print(paste0("Highest Model Order: ", k-1))
+      print(paste0("Next model p-value: ", anova(current_model, next_model)[6][2,]))
+      break
+    }
+    print(paste0("Analyzing Next Model Order: ", k))
   }
-  print(paste0("Analyzing Next Model Order: ", k))
 }
-
-
 
 ## Prepare output
 
@@ -151,7 +165,7 @@ if(!is.na(anova(current_model, next_model)[6][2,])) {
 
 ## Plotting
 
-pos_out$order = c(NA, paste0("Order ", str_count(pos_out$indices[-1], "[|]") + 1))
+pos_out$order = c(NA, paste0("Order ", str_count(pos_out$indices[-1], "[|]") + 1, " (", formatC(as.numeric(order[str_count(pos_out$indices[-1], "[|]") + 1, 2]), digits = 3), ")"))
 
 pos_out$indices = factor(pos_out$indices, levels = pos_out$indices)
 
@@ -161,36 +175,14 @@ ggplot(pos_out[-1,], aes(x = indices, y = effect, fill = order)) +
   geom_bar(stat="identity") +
   geom_text(aes(label=formatC(effect, digits=2), y = effect + 0.1*sign(effect)), size = 2.5) +
   facet_wrap(~ order, scales = "free_x") + 
-  labs(x = "Mutation(s)", y = "Effect on -deldelG") +
+  labs(x = "Mutation(s)", y = "Fold Effect on Activity") +
   theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
 
 dev.off()
 
-## Qualitative Violin plots for examining clustering/distributions
+## Qualitative Violin plot for examining clustering/distributions
 
-codes_effects = c()
-codes_position = c()
-
-for(i in 1:(length(names(codes)) - 1)) {
-  codes_effects = c(codes_effects, as.numeric(subset(codes, codes[,i] == 1)$effect))
-  codes_position = c(codes_position, rep(names(codes)[i], length(as.numeric(subset(codes, codes[,i] == 1)$effect))))
-}
-
-new_codes = data.frame(positions = codes_position, effects = codes_effects) 
-
-new_codes$positions = factor(new_codes$positions, levels = unique(new_codes$positions))
-
-png("fold_effect.png", width = 1200, height = 752)
-
-ggplot(new_codes, aes(x = positions, y = effects, color = positions)) +
-  geom_violin(color = "darkgray", trim = FALSE) +
-  geom_jitter(position = position_jitter(0.2)) +
-  labs(x = "Mutant Positions", y = "Fold Effect Change on Activity") +
-  theme_classic()
-
-dev.off()
-
-##
+## Mean Violin Plot
 
 codes$effect = as.numeric(codes$effect)
 
@@ -203,31 +195,46 @@ replace_occurence = function(x, replaced, value){
   return(x)
 }
 
-codes_iden = c()
-
-for(i in 1:dim(newer_codes)[1]) {
-  codes_iden = c(codes_iden, paste(as.character(replace_occurence(newer_codes[i, 1:(length(names(newer_codes)) - 1)], -1, 0)), collapse = ""))
-}
-
-newer_codes$identity = codes_iden
-
 codes_effects = c()
 codes_identity = c()
 codes_position = c()
 
+subtract = function(x) {
+  if(length(x) == 1) {
+    return(NA)
+  } else {
+    return(x[2] - x[1])
+  }
+} ## Very primitive function with little checks, however after taking the mean there should only be 1 or 2 values
+## If there is 1 value we can't display it because there is no interaction to compare so we return an NA and remove it
+
 for(i in 1:(length(names(newer_codes)) - 1)) {
-  codes_effects = c(codes_effects, as.numeric(subset(newer_codes, newer_codes[,i] == 1)$avg))
-  codes_identity = c(codes_identity, as.character(subset(newer_codes, newer_codes[,i] == 1)$identity))
-  codes_position = c(codes_position, rep(names(newer_codes)[i], length(as.numeric(subset(newer_codes, newer_codes[,i] == 1)$avg))))
+  
+  current = newer_codes %>%
+    group_by_at(names(newer_codes)[(1:(length(codes)-1))[(1:(length(codes)-1)) != i]]) %>%
+    summarise(idk = subtract(avg)) %>%
+    na.omit()
+  
+  codes_effects = c(codes_effects, current %>% pull(idk))
+  
+  for(j in 1:(dim(current)[1])) {
+    str_code = paste(as.character(replace_occurence(current[j, 1:(length(names(current)) - 1)], -1, 0)), collapse = "")
+    codes_identity = c(codes_identity, paste(c(substr(str_code, 0, i-1), substr(str_code, i, (length(names(newer_codes))-2))), collapse="x"))
+  }
+  
+  codes_position = c(codes_position, rep(names(newer_codes)[i], dim(current)[1]))
+
 }
 
-newer_codes = data.frame(positions = codes_position, effects = codes_effects, identity = codes_identity) 
+###
 
-newer_codes$positions = factor(newer_codes$positions, levels = unique(newer_codes$positions))
+new_codes = data.frame(positions = codes_position, effects = codes_effects, identity = codes_identity) 
+
+new_codes$positions = factor(new_codes$positions, levels = unique(new_codes$positions))
 
 png("mean_fold_effect.png", width = 1200, height = 752)
 
-ggplot(newer_codes, aes(x = positions, y = effects, color = positions)) +
+ggplot(new_codes, aes(x = positions, y = effects, color = positions)) +
   geom_violin(color = "darkgray", trim = FALSE) +
   geom_hline(yintercept=0, linetype="dashed", color = "black") +
   geom_jitter(position = position_jitter(0)) +
@@ -236,3 +243,6 @@ ggplot(newer_codes, aes(x = positions, y = effects, color = positions)) +
   theme_classic()
 
 dev.off()
+
+## Remove all memory for next analysis
+rm(list=ls())
