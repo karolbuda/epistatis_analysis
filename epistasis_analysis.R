@@ -149,11 +149,33 @@ for(i in 1:dim(simplex_chart)[1]) {
 pred_df = cbind(simplex_chart[dim(simplex_chart)[2]], preds)
 colnames(pred_df) = c("genotype", "predicted effect")
 
+## Truncated First order model predicted out vs real data
+
+simplex_chart = simplex_chart %>%
+  arrange_at(names(simplex_chart)[-dim(simplex_chart)[2]])
+
+preds = c()
+for(i in 1:dim(simplex_chart)[1]) {
+  preds = c(preds, predict(lm(paste("effect ~ (",vars ,")", sep=""), codes), simplex_chart[-dim(simplex_chart)[2]][i,]))
+}
+
+codes$effect = as.numeric(codes$effect)
+
+effects_vector = codes %>%
+  group_by_at(names(codes)[-dim(codes)[2]]) %>%
+  summarise(avg = mean(effect)) %>%
+  pull(avg)
+
+pred_compare_df = cbind(simplex_chart[dim(simplex_chart)[2]], preds, effects_vector)
+
+colnames(pred_compare_df) = c("genotype", "truncated effect", "observed effect")
+
 ## Writing csvs
 
 write.csv(pos_out[,c(2,1)],"pos_out.csv", row.names = FALSE)
 write.csv(order,"model_order.csv", row.names = FALSE)
 write.csv(pred_df, "gen_out.csv", row.names = FALSE)
+write.csv(pred_compare_df, "pred_out.csv", row.names = FALSE)
 
 ## Provide feedback in log.txt form if there are singularities because of missing data AND the p-value of next model if exists
 
@@ -185,8 +207,6 @@ dev.off()
 ## Qualitative Violin plot for examining clustering/distributions
 
 ## Mean Violin Plot
-
-codes$effect = as.numeric(codes$effect)
 
 newer_codes = codes %>%
   group_by_at(names(codes)[-length(names(codes))]) %>%
@@ -245,6 +265,12 @@ ggplot(new_codes, aes(x = positions, y = effects, color = positions)) +
   theme_classic()
 
 dev.off()
+
+####################
+## IN DEVELOPMENT ##
+####################
+
+# Looking at ALL the average effects, not just first order
 
 ## Remove all memory for next analysis
 rm(list=ls())
