@@ -1,9 +1,9 @@
 ### Inputs ###
 
-directory = "C:/Users/Karol Buda/Desktop/Program/R/Epistasis Model/zhang_et_al/p_removed"
-file = "zhang_et_al.csv"
+directory = "C:/Users/Karol Buda/Desktop/Program/R/Epistasis Model/Palmer_et_al"
+file = "palmer_et_al.csv"
 error = F
-p_on = F
+p_on = T
 
 ### Library ###
 
@@ -114,6 +114,8 @@ for(k in 2:(dim(codes)[2]-1)){
       print(paste0("Next model p-value: ", anova(current_model, next_model)[6][2,]))
       break
     }
+    print(paste0("Next model p-value: ", anova(current_model, next_model)[6][2,]))
+    print(paste0("Setting next model as current model...: "))
     print(paste0("Analyzing Next Model Order: ", k))
   }
 }
@@ -147,11 +149,81 @@ for(i in 1:dim(simplex_chart)[1]) {
 pred_df = cbind(simplex_chart[dim(simplex_chart)[2]], preds)
 colnames(pred_df) = c("genotype", "predicted effect")
 
+## Truncated First order model predicted out vs real data
+
+simplex_chart = simplex_chart %>%
+  arrange_at(names(simplex_chart)[-dim(simplex_chart)[2]])
+
+preds = c()
+for(i in 1:dim(simplex_chart)[1]) {
+  preds = c(preds, predict(lm(paste("effect ~ (",vars ,")", sep=""), codes), simplex_chart[-dim(simplex_chart)[2]][i,]))
+}
+
+codes$effect = as.numeric(codes$effect)
+
+effects_vector = codes %>%
+  group_by_at(names(codes)[-dim(codes)[2]]) %>%
+  summarise(avg = mean(effect)) %>%
+  pull(avg)
+
+pred_compare_df = cbind(simplex_chart[dim(simplex_chart)[2]], preds, effects_vector)
+
+colnames(pred_compare_df) = c("genotype", "truncated effect", "observed effect")
+
+## Make plot nicer and auto_adjust scale to make more sense
+
+ggplot(pred_compare_df, aes(x = `truncated effect`, y = `observed effect`)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0) +
+  geom_abline(slope = 1, intercept = 0 + log10(1.5), linetype = 'dashed') +
+  geom_abline(slope = 1, intercept = 0 - log10(1.5), linetype = 'dashed') +
+  geom_hline(yintercept = 0) + 
+  geom_vline(xintercept = 0) +
+  geom_vline(xintercept = 0 + log10(1.5), linetype = 'dashed') +
+  geom_vline(xintercept = 0 - log10(1.5), linetype = 'dashed') +
+  geom_polygon(data=data.frame(x=c(log10(1.5), 
+                                   max(pred_compare_df$`truncated effect`) + log10(1.5), 
+                                   max(pred_compare_df$`truncated effect`) + log10(1.5)), 
+                               y = c(0, 0, 1*(max(pred_compare_df$`truncated effect`)+log10(1.5)) - log10(1.5))), 
+               mapping=aes(x=x, y=y), fill = "blue", alpha = 0.2) +
+  geom_polygon(data=data.frame(x=c(log10(1.5), 
+                                   log10(1.5), 
+                                   max(pred_compare_df$`truncated effect`),
+                                   max(pred_compare_df$`truncated effect`)), 
+                               y = c(log10(1.5)*1 + log10(1.5), 
+                                     Inf, 
+                                     Inf, 
+                                     1*max(pred_compare_df$`truncated effect`) + log10(1.5))), 
+               mapping=aes(x=x, y=y), fill = "red", alpha = 0.2) +
+  geom_polygon(data=data.frame(x=c(log10(1.5), 
+                                   log10(1.5), 
+                                   max(pred_compare_df$`truncated effect`),
+                                   max(pred_compare_df$`truncated effect`)), 
+                               y = c(0, 
+                                     min(pred_compare_df$`observed effect`), 
+                                     min(pred_compare_df$`observed effect`), 
+                                     0)), 
+               mapping=aes(x=x, y=y), fill = "darkblue", alpha = 0.3) +
+  xlab("Predicted effect using 1st order model") +
+  ylab("Observed effect") +
+  xlim(NA, max(pred_compare_df$`truncated effect`) + log10(1.5))
+
+
+plot(`observed effect` ~ `truncated effect`, pred_compare_df)
+abline(0, 1)
+abline(0 + log10(1.5), 1, lty = 3)
+abline(0 - log10(1.5), 1, lty = 3)
+abline(h = 0, lty = 2)
+abline(v = 0, lty = 2)
+abline(v = 0 + log10(1.5), lty = 3, lwd = 0.1)
+abline(v = 0 - log10(1.5), lty = 3, lwd = 0.1)
+
 ## Writing csvs
 
 write.csv(pos_out[,c(2,1)],"pos_out.csv", row.names = FALSE)
 write.csv(order,"model_order.csv", row.names = FALSE)
 write.csv(pred_df, "gen_out.csv", row.names = FALSE)
+write.csv(pred_compare_df, "pred_out.csv", row.names = FALSE)
 
 ## Provide feedback in log.txt form if there are singularities because of missing data AND the p-value of next model if exists
 
@@ -183,8 +255,6 @@ dev.off()
 ## Qualitative Violin plot for examining clustering/distributions
 
 ## Mean Violin Plot
-
-codes$effect = as.numeric(codes$effect)
 
 newer_codes = codes %>%
   group_by_at(names(codes)[-length(names(codes))]) %>%
@@ -243,6 +313,12 @@ ggplot(new_codes, aes(x = positions, y = effects, color = positions)) +
   theme_classic()
 
 dev.off()
+
+####################
+## IN DEVELOPMENT ##
+####################
+
+# Looking at ALL the average effects, not just first order
 
 ## Remove all memory for next analysis
 rm(list=ls())
