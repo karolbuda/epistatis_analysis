@@ -170,6 +170,54 @@ pred_compare_df = cbind(simplex_chart[dim(simplex_chart)[2]], preds, effects_vec
 
 colnames(pred_compare_df) = c("genotype", "truncated effect", "observed effect")
 
+## Make plot nicer and auto_adjust scale to make more sense
+
+ggplot(pred_compare_df, aes(x = `truncated effect`, y = `observed effect`)) +
+  geom_point() +
+  geom_abline(slope = 1, intercept = 0) +
+  geom_abline(slope = 1, intercept = 0 + log10(1.5), linetype = 'dashed') +
+  geom_abline(slope = 1, intercept = 0 - log10(1.5), linetype = 'dashed') +
+  geom_hline(yintercept = 0) + 
+  geom_vline(xintercept = 0) +
+  geom_vline(xintercept = 0 + log10(1.5), linetype = 'dashed') +
+  geom_vline(xintercept = 0 - log10(1.5), linetype = 'dashed') +
+  geom_polygon(data=data.frame(x=c(log10(1.5), 
+                                   max(pred_compare_df$`truncated effect`) + log10(1.5), 
+                                   max(pred_compare_df$`truncated effect`) + log10(1.5)), 
+                               y = c(0, 0, 1*(max(pred_compare_df$`truncated effect`)+log10(1.5)) - log10(1.5))), 
+               mapping=aes(x=x, y=y), fill = "blue", alpha = 0.2) +
+  geom_polygon(data=data.frame(x=c(log10(1.5), 
+                                   log10(1.5), 
+                                   max(pred_compare_df$`truncated effect`),
+                                   max(pred_compare_df$`truncated effect`)), 
+                               y = c(log10(1.5)*1 + log10(1.5), 
+                                     Inf, 
+                                     Inf, 
+                                     1*max(pred_compare_df$`truncated effect`) + log10(1.5))), 
+               mapping=aes(x=x, y=y), fill = "red", alpha = 0.2) +
+  geom_polygon(data=data.frame(x=c(log10(1.5), 
+                                   log10(1.5), 
+                                   max(pred_compare_df$`truncated effect`),
+                                   max(pred_compare_df$`truncated effect`)), 
+                               y = c(0, 
+                                     min(pred_compare_df$`observed effect`), 
+                                     min(pred_compare_df$`observed effect`), 
+                                     0)), 
+               mapping=aes(x=x, y=y), fill = "darkblue", alpha = 0.3) +
+  xlab("Predicted effect using 1st order model") +
+  ylab("Observed effect") +
+  xlim(NA, max(pred_compare_df$`truncated effect`) + log10(1.5))
+
+
+plot(`observed effect` ~ `truncated effect`, pred_compare_df)
+abline(0, 1)
+abline(0 + log10(1.5), 1, lty = 3)
+abline(0 - log10(1.5), 1, lty = 3)
+abline(h = 0, lty = 2)
+abline(v = 0, lty = 2)
+abline(v = 0 + log10(1.5), lty = 3, lwd = 0.1)
+abline(v = 0 - log10(1.5), lty = 3, lwd = 0.1)
+
 ## Writing csvs
 
 write.csv(pos_out[,c(2,1)],"pos_out.csv", row.names = FALSE)
