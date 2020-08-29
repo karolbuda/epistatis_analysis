@@ -1,9 +1,9 @@
 ### Inputs ###
 
-directory = "C:/Users/Karol Buda/Desktop/Program/R/Epistasis Model/zhang_et_al/p_removed"
-file = "zhang_et_al.csv"
+directory = ""
+file = ""
 error = F
-p_on = F
+p_on = T
 
 ### Library ###
 
@@ -114,6 +114,8 @@ for(k in 2:(dim(codes)[2]-1)){
       print(paste0("Next model p-value: ", anova(current_model, next_model)[6][2,]))
       break
     }
+    print(paste0("Next model p-value: ", anova(current_model, next_model)[6][2,]))
+    print(paste0("Setting next model as current model...: "))
     print(paste0("Analyzing Next Model Order: ", k))
   }
 }
