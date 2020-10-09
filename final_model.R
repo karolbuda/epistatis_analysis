@@ -1,7 +1,7 @@
 ### Inputs ###
 
-directory = "C:/Users/karol/OneDrive/Program/R/Epistasis Model/MPH_MPT_Ni"
-file = "MPH_MPT_Ni.csv"
+directory = "C:/Users/karol/OneDrive/Program/R/Epistasis Model/weinrich_et_al/p_removed"
+file = "weinrich_et_al.csv"
 error = F
 p_on = F
 sign = T
@@ -610,4 +610,5 @@ network_analysis = function(eff = "observed") {
 outputs = data_loading(error)
 epistasis_analysis(p_on, T)
 network_analysis()
-
+network_analysis("average")
+network_analysis("WT")
